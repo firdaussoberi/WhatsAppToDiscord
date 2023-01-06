@@ -243,7 +243,8 @@ const commands = {
 };
 
 client.on('messageCreate', async (message) => {
-  if (message.author === client.user || message.webhookId != null) {
+  //avoid recursive loop
+  if (message.author === client.user) {
     return;
   }
 
@@ -251,8 +252,31 @@ client.on('messageCreate', async (message) => {
     const command = message.content.toLowerCase().split(' ');
     await (commands[command[0]] || commands.unknownCommand)(message, command.slice(1));
   } else {
-    state.waClient.ev.emit('discordMessage', message);
+    //See: https://discord.js.org/?source=post_page---------------------------#/docs/main/stable/class/Message  
+    //Note, we don't explicitly support discord components or discord stickers here  
+    //must be from normal webhook bot, case for embeds, attachments etc, only assumption until something breaks
+    if(message.webhookId != null){
+      //could be embed, component, or stickers
+      //assume if not embed, must be content, otherwise empty message (if say fully sticker)
+      //if has attachment
+      if (message.attachments.size != 0){ //as Collection/Map type
+        //Attachment case:    
+        //see whatsapp_magager.js for implementation     
+        state.waClient.ev.emit('discordMessage', message); 
+      }
+      else{
+        //Embed object case:      
+        if (message.embeds.length != 0){ //Object type
+          //see whatsapp_magager.js for implementation     
+          state.waClient.ev.emit('discordMessage', message); 
+        }
+      }
+    }
+    else{ //assume only clean content, and not content mixed with embed etc
+      state.waClient.ev.emit('discordMessage', message);      
+    }
   }
+
 });
 
 client.on('messageReactionAdd', async (reaction, user) => {

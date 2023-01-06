@@ -84,7 +84,9 @@ const connectToWhatsApp = async (retry = 1) => {
   });
 
   client.ev.on('discordMessage', async (message) => {
+
     const jid = dcUtils.channelIdToJid(message.channel.id);
+
     if (!jid) {
       if (!state.settings.Categories.includes(message.channel?.parent?.id)) {
         return;
@@ -99,7 +101,14 @@ const connectToWhatsApp = async (retry = 1) => {
     if (state.settings.UploadAttachments) {
       await Promise.all([...message.attachments.values()].map((attachment) => client.sendMessage(jid, waUtils.createDocumentContent(attachment))));
       if (!message.content) {
-        return;
+        if(message.embeds.length > 0){
+          message.content = "Embed"
+          message.cleanContent = "Embed"
+        }
+        if(message.attachments.size > 0){
+          message.content = "Attachments"
+          message.cleanContent = "Attachments"
+        }
       }
       content.text = message.content;
     } else {
@@ -117,7 +126,18 @@ const connectToWhatsApp = async (retry = 1) => {
       }
     }
 
-    state.lastMessages[message.id] = (await client.sendMessage(jid, content, options)).key.id;
+    //Embed object type, loop per object
+    if (message.embeds.length != 0){ 
+      for (var i = 0; i < message.embeds.length; i++){
+        content.text = JSON.stringify(message.embeds[i]);
+        state.lastMessages[message.id] = (await client.sendMessage(jid, content, options)).key.id;
+      }        
+    }
+    //Non-Embed type
+    else{
+      state.lastMessages[message.id] = (await client.sendMessage(jid, content, options)).key.id;      
+    }
+
   });
 
   client.ev.on('discordReaction', async ({ reaction, removed }) => {
