@@ -270,6 +270,9 @@ client.on('messageCreate', async (message) => {
           //see whatsapp_magager.js for implementation     
           state.waClient.ev.emit('discordMessage', message); 
         }
+        else{
+          state.waClient.ev.emit('discordMessage', message);           
+        }
       }
     }
     else{ //assume only clean content, and not content mixed with embed etc
